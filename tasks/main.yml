@@ -32,9 +32,9 @@
 
 - name: Load ldap root entry
   ldap_entry:
-    server_uri: "{{ldap_server_uri}}"
-    bind_dn: "{{ldap_basedn}}"
-    bind_pw: "{{ldap_bind_pw}}"
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
     dn: "{{ldap_basedn}}"
     objectClass:
       - top
@@ -42,9 +42,9 @@
 
 - name: Load OUs
   community.general.ldap_entry:
-    server_uri: "{{ ldap_auth.server_uri }}"
-    bind_dn: "{{ ldap_auth.bind_dn }}"
-    bind_pw: "{{ ldap_auth.bind_pw }}"
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
     dn: "ou={{ item.value.ou }},{{ item.value.parent_ou }}"
     objectClass:
       - organizationalUnit
@@ -55,9 +55,9 @@
 
 - name: Load groups
   community.general.ldap_entry:
-    server_uri: "{{ ldap_auth.server_uri }}"
-    bind_dn: "{{ ldap_auth.bind_dn }}"
-    bind_pw: "{{ ldap_auth.bind_pw }}"
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
     dn: "cn={{ item.name }},{{ item.parent_ou }}"
     objectClass:
       - posixGroup
@@ -68,9 +68,9 @@
 
 - name: Load users
   community.general.ldap_entry:
-    server_uri: "{{ ldap_auth.server_uri }}"
-    bind_dn: "{{ ldap_auth.bind_dn }}"
-    bind_pw: "{{ ldap_auth.bind_pw }}"
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
     dn: "uid={{ item.key }},{{ item.value.parent_ou }}"
     objectClass:
       - person
@@ -95,9 +95,9 @@
 
 - name: Add users to groups
   community.general.ldap_attrs:
-    server_uri: "{{ ldap_auth.server_uri }}"
-    bind_dn: "{{ ldap_auth.bind_dn }}"
-    bind_pw: "{{ ldap_auth.bind_pw }}"
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
     dn: "cn={{ item.0.name }},{{ item.0.parent_ou }}"
     attributes:
       memberUid: "{{ item.1 }}"
@@ -105,6 +105,17 @@
   with_subelements:
     - "{{ ldap_groups }}"
     - members
+
+- name: Remove dummy entry
+  ldap_attrs:
+    server_uri: "{{ ldap_server_uri }}"
+    bind_dn: "{{ ldap_basedn }}"
+    bind_pw: "{{ ldap_bind_pw }}"
+    dn: "cn={{item.name}},ou=groups,{{ldap_basedn}}"
+    attributes:
+      uniqueMember: "uid=dummy,ou=people,{{ldap_basedn}}"
+    state: absent
+  with_items: "{{ldap_groups}}"
 
 - name: Restart ldap service
   service:
